@@ -11,6 +11,8 @@ from sqlalchemy import inspect
 import cv2
 import numpy as np
 from deepface import DeepFace
+import uuid
+import shutil
 
 
 UPLOAD_FOLDER = "uploads"
@@ -49,10 +51,40 @@ def allowed_file(filename):
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-def compare_images(image1, image2):
-    result = DeepFace.verify(image1, image2)
-    print("Is verified: ", result["verified"])
-    return result["verified"]
+def array_to_image(array, filename):
+    cv2.imwrite(filename, array)
+
+
+def compare_images(image1_array, image2_array):
+    # Save image arrays as temporary files
+
+    # Directory for saving temporary images
+    temp_directory = "temp"
+
+    # Create the temp directory if it doesn't exist
+    if not os.path.exists(temp_directory):
+        os.makedirs(temp_directory)
+
+    # Construct file paths for temporary images
+    image1_filename = os.path.join(temp_directory, f"{uuid.uuid4()}.jpg")
+    image2_filename = os.path.join(temp_directory, f"{uuid.uuid4()}.jpg")
+
+    array_to_image(image1_array, image1_filename)
+    array_to_image(image2_array, image2_filename)
+
+    try:
+        path1 = f"./{image1_filename}"
+        path2 = f"./{image2_filename}"
+        # Perform verification using file paths
+        result = DeepFace.verify(img1_path=path1, img2_path=path2)
+        print("Is verified:", result["verified"])
+        shutil.rmtree(temp_directory)
+        return result
+
+    except Exception as e:
+        print("Error:", e)
+        return {"verified": False, "error": str(e)}
+
 
 # Create database tables based on models
 @app.before_request
@@ -73,7 +105,7 @@ def index():
         if file and allowed_file(file.filename):
             pic = file.read()
             try:
-                users = db.session.execute(db.select(User).order_by(User.first_name)).scalars()
+                users = db.session.execute(db.select(User).order_by(User.id)).scalars()
 
                 for user in users:
                     first_name = user.first_name
@@ -82,22 +114,23 @@ def index():
                     image = user.image
                     is_registered = user.is_registered
 
-                    # Encode the image data as base64
-                    image1 = base64.b64decode(image)
-                    image2 = base64.b64encode(pic).decode("utf-8")
-                    image2 = base64.b64decode(image2)
-
                     # Convert the bytes to a numpy array
-                    image1_np_array = np.frombuffer(image1, np.uint8)
-                    image2_np_array = np.frombuffer(image2, np.uint8)
+                    image1_np_array = np.frombuffer(image, np.uint8)
+                    image2_np_array = np.frombuffer(pic, np.uint8)
 
                     # Read the image using OpenCV
                     image_1 = cv2.imdecode(image1_np_array, cv2.IMREAD_COLOR)
                     image_2 = cv2.imdecode(image2_np_array, cv2.IMREAD_COLOR)
 
-                    results = compare_images(image_1, image_2)
-                    if results:
-                        print('Done')
+                    if image_1 is None:
+                        print("Failed to decode image 1")
+                    if image_2 is None:
+                        print("Failed to decode image 2")
+
+                    results = compare_images(image1_array=image_1, image2_array=image_2)
+
+                    if results["verified"] and (results["distance"] <= 0.2):
+                        print("Done")
                         pic = base64.b64encode(pic).decode("utf-8")
                         return render_template(
                             "verify.html",
@@ -111,7 +144,7 @@ def index():
 
             except Exception as e:
                 error_text = "The error:" + str(e)
-                hed = 'Something is broken.'
+                hed = "Something is broken."
                 message = hed + error_text
                 print(message)
                 return render_template("index.html", message=message)
@@ -128,13 +161,12 @@ def upload():
 
 @app.route("/add_record", methods=["GET", "POST"])
 def add_record():
-    if request.method == 'POST':
+    if request.method == "POST":
         first_name = request.form["firstname"]
         last_name = request.form["lastname"]
         registration = request.form["registration"]
         is_registered = request.form["is_registered"]
         image = request.files["image"]
-        print(image)
 
         if is_registered == "on":
             is_registered = True
@@ -146,20 +178,17 @@ def add_record():
 
         if image and allowed_file(image.filename):
             pic = image.read()
-            
-            # Encode the image data as base64
-            image_data = base64.b64encode(pic)
 
             # the data to be inserted into User table
-            record = User(first_name, last_name, registration, image_data, is_registered)
-            
+            record = User(first_name, last_name, registration, pic, is_registered)
+
             # Flask-SQLAlchemy magic adds record to database
             db.session.add(record)
             db.session.commit()
-            
+
             # create a message to send to the template
             message = f"The data for user {first_name} {last_name} has been submitted."
-            
+
             return render_template("add_record.html", message=message)
         else:
             return render_template("add_record.html")
@@ -167,12 +196,25 @@ def add_record():
         return render_template("add_record.html")
 
 
+@app.route("/verify_image", methods=["GET"])
+def verify_image():
+    try:
+        # Retrieve the first user record from the database
+        user = db.session.query(User).first()
+
+        if user:
+            image_data = user.image
+
+            # Write the decoded image data to a file for inspection
+            with open("decoded_image.jpg", "wb") as f:
+                f.write(image_data)
+
+            return "Image successfully decoded and saved as 'decoded_image.jpg'"
+        else:
+            return "No user records found in the database"
+    except Exception as e:
+        return f"Error decoding image: {e}"
+
+
 if __name__ == "__main__":
     app.run(debug=True)
-
-
-# @app.route("/uploads/<filename>")
-# def uploaded_file(filename):
-#     return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
-# app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-# file.save(os.path.join(app.config["UPLOAD_FOLDER"], secure_filename(file.filename)))
