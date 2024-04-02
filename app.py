@@ -31,6 +31,7 @@ app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = True
 # initialize the app with Flask-SQLAlchemy
 db.init_app(app)
 
+
 # Database
 class User(db.Model):
     __tablename__ = "users"
@@ -38,15 +39,23 @@ class User(db.Model):
     first_name = db.Column(db.String)
     last_name = db.Column(db.String)
     registraion = db.Column(db.String)
+    gender = db.Column(db.String)
+    program = db.Column(db.String)
+    sclass = db.Column(db.String)
+    nta_level = db.Column(db.String)
     image = db.Column(db.LargeBinary)
-    is_registered = db.Column(db.Boolean)
+    is_eligible = db.Column(db.Boolean)
 
-    def __init__(self, first_name, last_name, registraion, image, is_registered):
+    def __init__(self, first_name, last_name, registraion, gender, program, sclass, nta_level, image, is_eligible):
         self.first_name = first_name
         self.last_name = last_name
         self.registraion = registraion
+        self.gender = gender
+        self.program = program
+        self.sclass = sclass
+        self.nta_level = nta_level
         self.image = image
-        self.is_registered = is_registered
+        self.is_eligible = is_eligible
 
 
 def allowed_file(filename):
@@ -101,16 +110,22 @@ class AddRecord(Resource):
         first_name = request.form["firstname"]
         last_name = request.form["lastname"]
         registration = request.form["registration"]
-        is_registered = request.form["is_registered"]
+        is_eligible = request.form["is_eligible"]
         image = request.files["image"]
+        gender = request.form["gender"]
+        program = request.form["program"]
+        sclass = request.form["class"]
+        nta_level = request.form["nta_level"]
         
-        if is_registered.lower() == "yes":
-            is_registered = True
-        elif is_registered.lower() == "no":
-            is_registered = False
+
+        if is_eligible.lower() == "true":
+            is_eligible = True
+        elif is_eligible.lower() == "false":
+            is_eligible = False
         else:
-            return {"Error": "Use 'yes' or 'no' to specify is_registered"}
-        
+            return {
+                "Error": "Use 'boolean value 'true' or 'false' to specify is_eligible"
+            }
 
         if image.filename == "":
             return {"Error": "Image is empty"}
@@ -119,7 +134,7 @@ class AddRecord(Resource):
             pic = image.read()
 
             # the data to be inserted into User table
-            record = User(first_name, last_name, registration, pic, is_registered)
+            record = User(first_name, last_name, registration, gender, program, sclass, nta_level, pic, is_eligible)
 
             # Flask-SQLAlchemy magic adds record to database
             db.session.add(record)
@@ -149,8 +164,12 @@ class VerifyImage(Resource):
                     first_name = user.first_name
                     last_name = user.last_name
                     registraion = user.registraion
+                    gender = user.gender
+                    program =user.program
+                    sclass = user.sclass
+                    nta_level = user.nta_level
                     image = user.image
-                    is_registered = user.is_registered
+                    is_eligible = user.is_eligible
 
                     # Convert the bytes to a numpy array
                     image1_np_array = np.frombuffer(image, np.uint8)
@@ -171,11 +190,15 @@ class VerifyImage(Resource):
                         print("Done")
                         pic = base64.b64encode(pic).decode("utf-8")
                         return {
-                            "pic": pic,
                             "first_name": first_name,
                             "last_name": last_name,
                             "registraion": registraion,
-                            "is_registered": is_registered 
+                            "gender": gender,
+                            "program": program,
+                            "class": sclass,
+                            "nta_level": nta_level,
+                            "is_eligible": is_eligible,
+                            "pic": pic,
                         }
                         break
 
