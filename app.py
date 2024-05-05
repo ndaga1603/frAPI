@@ -283,10 +283,23 @@ class UpdateRecord(Resource):
             return {"Error": f"User with registration {registration} not found"}
         
 
+class DeleteRecord(Resource):
+    def post(self):
+        registration = request.form["registration"]
+        user = db.session.execute(db.select(User).filter(User.registraion == registration)).scalars().first()
+        if user:
+            db.session.delete(user)
+            db.session.commit()
+            return {"Message": f"User with registration {registration} deleted successfully"}
+        else:
+            return {"Error": f"User with registration {registration} not found"}
+        
+
 api.add_resource(VerifyImage, "/verify_image")
 api.add_resource(AddRecord, "/add_record")
 api.add_resource(GetRecords, "/get_records")
 api.add_resource(UpdateRecord, "/update_record")
+api.add_resource(DeleteRecord, "/delete_record")
 
 if __name__ == "__main__":
     app.run(debug=True)

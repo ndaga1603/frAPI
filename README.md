@@ -121,6 +121,21 @@ Updates an existing user record in the database.
         "message": "User with registration <registration> updated successfully"
     }
 
+### 5. Delete Record
+
+Deletes an existing user record from the database.
+
+- **URL:** `/delete_record`
+- **Method:** `POST`
+    *Request Body:* Form data containing the user's registration number (`registration`).
+
+- **Response:**
+
+    ```json
+    {
+        "message": "User with registration <registration> deleted successfully"
+    }
+
 ## Allowed Image Formats
 
 - PNG
