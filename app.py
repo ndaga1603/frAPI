@@ -242,10 +242,51 @@ class GetRecords(Resource):
             message = hed + error_text
             return {"Error": message}
 
+class UpdateRecord(Resource):
+    def post(self):
+        first_name = request.form["firstname"]
+        last_name = request.form["lastname"]
+        registration = request.form["registration"]
+        is_eligible = request.form["is_eligible"]
+        gender = request.form["gender"]
+        program = request.form["program"]
+        sclass = request.form["class"]
+        nta_level = request.form["nta_level"]
+        image = request.files["image"]
+
+        if is_eligible.lower() == "true":
+            is_eligible = True
+        elif is_eligible.lower() == "false":
+            is_eligible = False
+        else:
+            return {
+                "Error": "Use 'boolean value 'true' or 'false' to specify is_eligible"
+            }
+
+        user = db.session.execute(db.select(User).filter(User.registraion == registration)).scalars().first()
+        if user:
+             if image and allowed_file(image.filename):
+                pic = image.read()
+                user.is_eligible = is_eligible
+                user.first_name = first_name
+                user.last_name = last_name
+                user.gender = gender
+                user.program = program
+                user.sclass = sclass
+                user.nta_level = nta_level
+                user.image = pic
+                
+                
+                db.session.commit()
+                return {"Message": f"User with registration {registration} updated successfully"}
+        else:
+            return {"Error": f"User with registration {registration} not found"}
+        
 
 api.add_resource(VerifyImage, "/verify_image")
 api.add_resource(AddRecord, "/add_record")
 api.add_resource(GetRecords, "/get_records")
+api.add_resource(UpdateRecord, "/update_record")
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -106,6 +106,21 @@ Retrieves all user records from the database.
         ]
     }
 
+### 4. Update Record
+
+Updates an existing user record in the database.
+
+- **URL:** `/update_record`
+- **Method:** `POST`
+    *Request Body:* Form data containing the user's details (`firstname`, `lastname`, `registration`, `gender`, `program`, `class`, `nta_level`, `is_eligible`) and image file (`image`).
+
+- **Response:**
+
+    ```json
+    {
+        "message": "User with registration <registration> updated successfully"
+    }
+
 ## Allowed Image Formats
 
 - PNG
