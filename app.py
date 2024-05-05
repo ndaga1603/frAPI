@@ -117,7 +117,6 @@ class AddRecord(Resource):
         sclass = request.form["class"]
         nta_level = request.form["nta_level"]
         
-
         if is_eligible.lower() == "true":
             is_eligible = True
         elif is_eligible.lower() == "false":
@@ -129,23 +128,28 @@ class AddRecord(Resource):
 
         if image.filename == "":
             return {"Error": "Image is empty"}
-
-        if image and allowed_file(image.filename):
-            pic = image.read()
-
-            # the data to be inserted into User table
-            record = User(first_name, last_name, registration, gender, program, sclass, nta_level, pic, is_eligible)
-
-            # Flask-SQLAlchemy magic adds record to database
-            db.session.add(record)
-            db.session.commit()
-
-            # create a message to send to the template
-            message = f"The data for user {first_name} {last_name} has been submitted."
-
-            return {"Message": message}
+        
+        # Check if user already exists
+        user = db.session.execute(db.select(User).filter(User.registraion == registration)).scalars().first()
+        if user:
+            return {"Error": f"User with Registration {registration} already exists"}
         else:
-            return {"Error": f"Image not in {ALLOWED_EXTENSIONS}"}
+            if image and allowed_file(image.filename):
+                pic = image.read()
+
+                # the data to be inserted into User table
+                record = User(first_name, last_name, registration, gender, program, sclass, nta_level, pic, is_eligible)
+
+                # Flask-SQLAlchemy magic adds record to database
+                db.session.add(record)
+                db.session.commit()
+
+                # create a message to send to the template
+                message = f"The data for user {first_name} {last_name} has been submitted."
+
+                return {"Message": message}
+            else:
+                return {"Error": f"Image not in {ALLOWED_EXTENSIONS}"}
 
 
 class VerifyImage(Resource):
@@ -211,9 +215,37 @@ class VerifyImage(Resource):
         else:
             return {"Error": f"Image not in {ALLOWED_EXTENSIONS}"}
 
+class GetRecords(Resource):
+    def get(self):
+        try:
+            users = db.session.execute(db.select(User).order_by(User.id)).scalars()
+            data = []
+            for user in users:
+                pic = base64.b64encode(user.image).decode("utf-8")
+                data.append(
+                    {
+                        "first_name": user.first_name,
+                        "last_name": user.last_name,
+                        "registration": user.registraion,
+                        "is_eligible": user.is_eligible,
+                        "program": user.program,
+                        "class": user.sclass,
+                        "nta_level": user.nta_level,
+                        "gender": user.gender,
+                        "image": pic,
+                    }
+                )
+            return {"data": data}
+        except Exception as e:
+            error_text = "The error:" + str(e)
+            hed = "Something is broken."
+            message = hed + error_text
+            return {"Error": message}
+
 
 api.add_resource(VerifyImage, "/verify_image")
 api.add_resource(AddRecord, "/add_record")
+api.add_resource(GetRecords, "/get_records")
 
 if __name__ == "__main__":
     app.run(debug=True)

@@ -39,30 +39,7 @@ This API allows users to verify images against a database of registered users an
 
 ## Endpoints
 
-### 1. Verify Image
-
-Verifies an image against the registered users in the database.
-
-- **URL:** `/verify_image`
-- **Method:** `POST`
-    *Request Body:* Form data containing the image file (`image`).
-
-- **Response Example:**
-
-  ```json
-    {
-        "first_name": "John",
-        "last_name": "Doe",
-        "registration": "20220328",
-        "gender": "Male",
-        "program": "Computer Science",
-        "class": "Senior",
-        "nta_level": "Advanced",
-        "is_eligible": "True",
-        "pic": "Base64 Encoded Image Data",
-    }
-
-### 2. Add Record
+### 1. Add Record
 
 Adds a new user record to the database.
 
@@ -79,6 +56,55 @@ Adds a new user record to the database.
         }
 
 *If there's an error, the response will contain an error message.*
+
+### 2. Verify Image
+
+Verifies an image against the registered users in the database.
+
+- **URL:** `/verify_image`
+- **Method:** `POST`
+    *Request Body:* Form data containing the image file (`image`).
+
+- **Response Example:**
+
+  ```json
+    {
+        "first_name": "John",
+        "last_name": "Doe",
+        "registration": "20220328",
+        "gender": "Male",
+        "program": "Computer Engineering",
+        "class": "COE",
+        "nta_level": "8",
+        "is_eligible": "True",
+        "pic": "Base64 Encoded Image Data",
+    }
+
+### 3. Get All Records
+
+Retrieves all user records from the database.
+
+- **URL:** `/get_records`
+- **Method:** `GET`
+
+- **Response Example:**
+
+    ```json
+    {
+        "records": [
+            {
+                "first_name": "John",
+                "last_name": "Doe",
+                "registration": "20220328",
+                "is_eligible": "True",
+                "gender": "Male",
+                "program": "Computer Engineering",
+                "class": "COE",
+                "nta_level": "8",
+                "image": "Base64 Encoded Image Data",
+            },
+        ]
+    }
 
 ## Allowed Image Formats
 
