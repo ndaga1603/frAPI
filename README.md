@@ -91,7 +91,7 @@ Retrieves all user records from the database.
 
     ```json
     {
-        "records": [
+        "data": [
             {
                 "first_name": "John",
                 "last_name": "Doe",
