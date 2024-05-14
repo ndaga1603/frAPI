@@ -41,7 +41,7 @@ class User(db.Model):
     registraion = db.Column(db.String)
     gender = db.Column(db.String)
     program = db.Column(db.String)
-    sclass = db.Column(db.String)
+    sclass = db.Column(db.String, nullable=True)
     nta_level = db.Column(db.String)
     image = db.Column(db.LargeBinary)
     is_eligible = db.Column(db.Boolean)
